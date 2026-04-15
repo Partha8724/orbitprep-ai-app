@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "OrbitPrep AI",
-  description: "AI-powered government exam preparation platform",
+  description: "AI-powered government exam preparation platform for UPSC, APSC, SSC, Railway, Banking and more.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="bg-[#050816] text-white antialiased">
+        {children}
+      </body>
     </html>
   );
 }
