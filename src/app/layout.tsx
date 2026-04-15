@@ -1,10 +1,9 @@
-import { AuthButtons } from "@/components/auth-buttons";
 import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "OrbitPrep AI – Government Exam Preparation Platform",
+    default: "OrbitPrep AI â€“ Government Exam Preparation Platform",
     template: "%s | OrbitPrep AI",
   },
   description:
@@ -24,7 +23,7 @@ export const metadata: Metadata = {
   creator: "Partha Dutta",
   metadataBase: new URL("https://orbitprep-ai.vercel.app"),
   openGraph: {
-    title: "OrbitPrep AI – Crack Government Exams with AI",
+    title: "OrbitPrep AI â€“ Crack Government Exams with AI",
     description:
       "AI-powered platform for UPSC, APSC, SSC, Railway exams with mock tests, PDFs, and smart preparation.",
     url: "https://orbitprep-ai.vercel.app",
@@ -42,7 +41,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "OrbitPrep AI – Government Exam Prep",
+    title: "OrbitPrep AI â€“ Government Exam Prep",
     description:
       "Prepare smarter with AI mentor, mock tests and current affairs.",
     images: ["/og-image.png"],

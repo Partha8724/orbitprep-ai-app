@@ -1,4 +1,4 @@
-﻿import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { SubscriptionStatus, UserSubscription } from "@/lib/types";
 
@@ -33,7 +33,7 @@ export async function upsertUserSubscription({
   currentPeriodEnd?: string | null;
 }) {
   const supabase = createSupabaseAdminClient();
-  const isPremium = status === "active" || status === "authenticated";
+  const isPremium = status === "active";
 
   const { error: subscriptionError } = await supabase.from("subscriptions").upsert(
     {
@@ -63,6 +63,43 @@ export async function upsertUserSubscription({
   }
 }
 
+export async function updateUserSubscriptionByRazorpayId({
+  userId,
+  subscriptionId,
+  paymentId = null,
+  status,
+  currentPeriodEnd = null,
+}: {
+  userId: string;
+  subscriptionId: string;
+  paymentId?: string | null;
+  status: SubscriptionStatus;
+  currentPeriodEnd?: string | null;
+}) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: subscription, error: lookupError } = await supabase
+    .from("subscriptions")
+    .select("user_id")
+    .eq("razorpay_subscription_id", subscriptionId)
+    .single();
+
+  if (lookupError || !subscription) {
+    throw new Error(`Could not find subscription ${subscriptionId}.`);
+  }
+
+  if (subscription.user_id !== userId) {
+    throw new Error("Subscription does not belong to the authenticated user.");
+  }
+
+  await upsertUserSubscription({
+    userId,
+    subscriptionId,
+    paymentId,
+    status,
+    currentPeriodEnd,
+  });
+}
 export async function updateSubscriptionByRazorpayId({
   subscriptionId,
   paymentId = null,

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentProfile } from "@/lib/auth";
 import { verifyCheckoutSignature } from "@/lib/razorpay/client";
-import { upsertUserSubscription } from "@/lib/subscriptions";
+import { updateUserSubscriptionByRazorpayId } from "@/lib/subscriptions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid Razorpay signature." }, { status: 400 });
     }
 
-    await upsertUserSubscription({
+    await updateUserSubscriptionByRazorpayId({
       userId: profile.id,
       subscriptionId: body.razorpay_subscription_id,
       paymentId: body.razorpay_payment_id,

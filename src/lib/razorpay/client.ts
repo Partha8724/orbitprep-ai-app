@@ -27,14 +27,14 @@ function getRazorpayKeySecret() {
 
 export function getRazorpayPublicConfig() {
   const checkoutKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID;
-  const planId = process.env.RAZORPAY_PREMIUM_PLAN_ID;
+  const planId = process.env.RAZORPAY_PLAN_ID;
 
   if (!checkoutKeyId) {
     throw new Error("Missing Razorpay checkout key. Set NEXT_PUBLIC_RAZORPAY_KEY_ID.");
   }
 
   if (!planId) {
-    throw new Error("Missing Razorpay premium plan. Set RAZORPAY_PREMIUM_PLAN_ID.");
+    throw new Error("Missing Razorpay premium plan. Set RAZORPAY_PLAN_ID.");
   }
 
   return {
