@@ -1,70 +1,122 @@
-﻿import Link from "next/link";
-import { FileText, Newspaper, Trophy } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
-import { logoutAction } from "@/app/auth-actions";
-import { requireProfile } from "@/lib/auth";
-import { getStudentLearningData } from "@/lib/platform";
-
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Dashboard" };
-
-const studentSections = [
-  { href: "/daily-questions", title: "Daily questions", copy: "Practice approved AI and admin-reviewed MCQs every day." },
-  { href: "/test-series", title: "Mock tests", copy: "Attempt published tests with timer, scoring, and accuracy history." },
-  { href: "/pdfs", title: "PDF library", copy: "Download approved revision PDFs, current affairs digests, and study notes." },
-  { href: "/ai-mentor", title: "AI mentor", copy: "Ask for strategy, weak-topic help, explanations, and daily study planning." },
-  { href: "/current-affairs", title: "Current affairs", copy: "Read exam-ready summaries from the approved content workflow." },
-  { href: "/exams", title: "Exam hubs", copy: "Open UPSC, APSC, SSC, Railway, Banking, Police, Teaching, Defence, and Assam job sections." },
+const stats = [
+    { title: "Tests Taken", value: "12" },
+    { title: "Average Score", value: "78%" },
+    { title: "Current Streak", value: "5 Days" },
+    { title: "Rank Progress", value: "+14" },
 ];
 
-export default async function DashboardPage() {
-  const profile = await requireProfile();
-  const learning = await getStudentLearningData(profile);
+const recentTests = [
+    { name: "UPSC Polity Mock 1", score: "82%", date: "Today" },
+    { name: "APSC Geography Practice", score: "74%", date: "Yesterday" },
+    { name: "Current Affairs Quiz", score: "88%", date: "2 days ago" },
+];
 
-  return (
-    <main className="min-h-screen bg-[#050816] px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl">
-        <header className="flex flex-col gap-5 border-b border-white/10 pb-8 md:flex-row md:items-center md:justify-between">
-          <div>
-            <Link href="/" className="text-sm text-cyan-200 hover:text-cyan-100">OrbitPrep AI</Link>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Welcome, {profile.full_name}</h1>
-            <p className="mt-3 max-w-2xl text-slate-300">All student services are open: AI mentor, tests, PDFs, daily questions, current affairs, and exam-specific study hubs.</p>
-          </div>
-          <form action={logoutAction}><button className="rounded-md border border-white/10 bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-100">Log out</button></form>
-        </header>
+const weakAreas = [
+    "Modern History",
+    "Environment",
+    "Assam Geography",
+];
 
-        <section className="mt-10 grid gap-5 md:grid-cols-3">
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6"><div className="text-sm text-slate-400">Profile</div><div className="mt-3 font-semibold">{profile.email}</div></div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6"><div className="text-sm text-slate-400">Access</div><div className="mt-3 font-semibold text-emerald-100">Free launch access</div></div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6"><div className="text-sm text-slate-400">Role</div><div className="mt-3 capitalize font-semibold">{profile.role}</div>{profile.role === "admin" ? <Link href="/admin" className="mt-3 inline-flex text-sm text-cyan-200">Open admin</Link> : null}</div>
-        </section>
+export default function DashboardPage() {
+    return (
+        <main className="min-h-screen bg-[#050816] text-white">
+            <Navbar />
 
-        <section className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {studentSections.map((section) => (
-            <Link key={section.href} href={section.href} className="rounded-lg border border-white/10 bg-white/5 p-6 transition hover:border-cyan-300/40 hover:bg-white/10">
-              <h2 className="text-xl font-semibold">{section.title}</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">{section.copy}</p>
-            </Link>
-          ))}
-        </section>
+            <section className="px-6 pb-20 pt-32 md:px-12">
+                <div className="mx-auto max-w-7xl">
+                    <div className="max-w-3xl">
+                        <p className="mb-4 text-sm uppercase tracking-[0.3em] text-white/60">
+                            Student Dashboard
+                        </p>
+                        <h1 className="text-4xl font-bold leading-tight md:text-6xl">
+                            Track your preparation in one place
+                        </h1>
+                        <p className="mt-5 text-white/75 md:text-lg">
+                            Monitor tests, scores, weak areas, and daily progress with a cleaner premium dashboard.
+                        </p>
+                    </div>
 
-        <section className="mt-8 grid gap-5 lg:grid-cols-3">
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6"><FileText className="h-7 w-7 text-cyan-200" /><h2 className="mt-4 text-xl font-semibold">Latest PDFs</h2><div className="mt-5 space-y-3">{learning.pdfs.map((pdf) => <a key={pdf.id} href={pdf.file_url} className="block rounded-md border border-white/10 bg-slate-950/60 p-4"><div className="font-semibold">{pdf.title}</div><div className="mt-1 text-sm text-slate-400">Free download · {pdf.source_type}</div></a>)}{learning.pdfs.length === 0 ? <p className="text-sm text-slate-400">No approved PDFs available yet.</p> : null}</div></div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6"><Trophy className="h-7 w-7 text-violet-200" /><h2 className="mt-4 text-xl font-semibold">Published mock tests</h2><div className="mt-5 space-y-3">{learning.tests.map((test) => <Link key={test.id} href={`/test-series/${test.id}`} className="block rounded-md border border-white/10 bg-slate-950/60 p-4"><div className="font-semibold">{test.title}</div><div className="mt-1 text-sm text-slate-400">{test.duration_minutes} min · Free access</div></Link>)}{learning.tests.length === 0 ? <p className="text-sm text-slate-400">No published tests available yet.</p> : null}</div></div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6"><Newspaper className="h-7 w-7 text-emerald-200" /><h2 className="mt-4 text-xl font-semibold">Current affairs</h2><div className="mt-5 space-y-3">{learning.currentAffairs.map((entry) => <Link key={entry.id} href="/current-affairs" className="block rounded-md border border-white/10 bg-slate-950/60 p-4"><div className="font-semibold">{entry.title}</div><p className="mt-1 line-clamp-2 text-sm text-slate-400">{entry.summary}</p></Link>)}{learning.currentAffairs.length === 0 ? <p className="text-sm text-slate-400">No approved current affairs available yet.</p> : null}</div></div>
-        </section>
+                    <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+                        {stats.map((item) => (
+                            <div
+                                key={item.title}
+                                className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_80px_rgba(255,255,255,0.04)] backdrop-blur-xl"
+                            >
+                                <p className="text-sm text-white/60">{item.title}</p>
+                                <h2 className="mt-3 text-3xl font-bold">{item.value}</h2>
+                            </div>
+                        ))}
+                    </div>
 
-        <section className="mt-8 grid gap-5 lg:grid-cols-2">
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6">
-            <h2 className="text-xl font-semibold">Recent performance</h2>
-            <div className="mt-5 space-y-3">{learning.attempts.map((attempt) => <Link key={attempt.id} href={`/test-series/results/${attempt.id}`} className="block rounded-md border border-white/10 bg-slate-950/60 p-4"><div className="font-semibold">{(Array.isArray(attempt.mock_tests) ? attempt.mock_tests[0]?.title : attempt.mock_tests?.title) || "Mock test"}</div><div className="mt-1 text-sm text-slate-400">{attempt.correct_answers}/{attempt.total_questions} correct · {attempt.score_percent}% accuracy</div></Link>)}{learning.attempts.length === 0 ? <p className="text-sm text-slate-400">Attempts will appear after your first mock test.</p> : null}</div>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6">
-            <h2 className="text-xl font-semibold">Weak topic detection</h2>
-            <div className="mt-5 space-y-3">{learning.weakTopics.map((topic) => <div key={topic.topicId} className="rounded-md border border-white/10 bg-slate-950/60 p-4"><div className="font-semibold">{topic.topicId === "unmapped" ? "Unmapped topic" : topic.topicId}</div><div className="mt-1 text-sm text-slate-400">{topic.accuracy}% accuracy across {topic.total} questions</div></div>)}{learning.weakTopics.length === 0 ? <p className="text-sm text-slate-400">Weak topics are calculated from saved mock-test answers.</p> : null}</div>
-          </div>
-        </section>
-      </div>
-    </main>
-  );
+                    <div className="mt-10 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+                        <div className="rounded-3xl border border-white/10 bg-white/5 p-7 backdrop-blur-xl">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-2xl font-semibold">Recent Test Activity</h3>
+                                <a
+                                    href="/test-series"
+                                    className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black"
+                                >
+                                    New Test
+                                </a>
+                            </div>
+
+                            <div className="mt-6 space-y-4">
+                                {recentTests.map((test) => (
+                                    <div
+                                        key={test.name}
+                                        className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 p-5 md:flex-row md:items-center md:justify-between"
+                                    >
+                                        <div>
+                                            <h4 className="text-lg font-semibold">{test.name}</h4>
+                                            <p className="mt-1 text-sm text-white/60">{test.date}</p>
+                                        </div>
+
+                                        <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-200">
+                                            Score: {test.score}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="rounded-3xl border border-white/10 bg-white/5 p-7 backdrop-blur-xl">
+                                <h3 className="text-2xl font-semibold">Weak Areas</h3>
+                                <div className="mt-5 space-y-3">
+                                    {weakAreas.map((item) => (
+                                        <div
+                                            key={item}
+                                            className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-white/85"
+                                        >
+                                            {item}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="rounded-3xl border border-white/10 bg-white/5 p-7 backdrop-blur-xl">
+                                <h3 className="text-2xl font-semibold">Quick Actions</h3>
+                                <div className="mt-5 flex flex-col gap-3">
+                                    <a
+                                        href="/test-series"
+                                        className="rounded-full bg-white px-5 py-3 text-center font-semibold text-black"
+                                    >
+                                        Start Mock Test
+                                    </a>
+                                    <a
+                                        href="/pricing"
+                                        className="rounded-full border border-white/20 bg-white/10 px-5 py-3 text-center font-semibold text-white"
+                                    >
+                                        Upgrade Premium
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    );
 }

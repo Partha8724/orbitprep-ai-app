@@ -1,48 +1,66 @@
-﻿import Link from "next/link";
+import { notFound } from "next/navigation";
+import Link from "next/link";
 
-import { MockTestForm } from "@/components/mock-test-form";
+import { MockTestRunner } from "@/components/mock-test-runner";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { requireProfile } from "@/lib/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getMockTest, mockTests } from "@/lib/mock-tests";
 
-export const dynamic = "force-dynamic";
+export function generateStaticParams() {
+  return mockTests.map((test) => ({ testId: test.id }));
+}
 
-type PageProps = { params: Promise<{ testId: string }>; searchParams: Promise<{ error?: string }> };
-type Option = { label: string; text: string };
+type PageProps = { params: Promise<{ testId: string }> };
 
-export default async function TestAttemptPage({ params, searchParams }: PageProps) {
-  await requireProfile();
+export async function generateMetadata({ params }: PageProps) {
   const { testId } = await params;
-  const query = await searchParams;
-  const supabase = await createSupabaseServerClient();
-  const { data: test, error } = await supabase
-    .from("mock_tests")
-    .select("id, title, description, duration_minutes, mock_test_questions(position, questions(id, question_text, options, difficulty))")
-    .eq("id", testId)
-    .eq("status", "published")
-    .single();
+  const test = getMockTest(testId);
+  return { title: test ? test.title : "Mock Test" };
+}
 
-  if (error || !test) throw new Error(error?.message || "Test not found");
+export default async function TestAttemptPage({ params }: PageProps) {
+  const { testId } = await params;
+  const test = getMockTest(testId);
 
-  const rows = [...(test.mock_test_questions || [])].sort((a, b) => a.position - b.position);
-  const questions = rows.flatMap((row) => {
-    const question = Array.isArray(row.questions) ? row.questions[0] : row.questions;
-    if (!question) return [];
-    return [{ id: question.id, question_text: question.question_text, difficulty: question.difficulty, options: (question.options || []) as Option[] }];
-  });
+  if (!test) {
+    notFound();
+  }
 
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-4xl px-6 py-20">
-        <Link href="/test-series" className="text-sm text-cyan-200">Back to tests</Link>
-        <div className="mt-4 inline-flex rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-sm text-emerald-100">Free access</div>
-        <h1 className="mt-4 text-5xl font-semibold">{test.title}</h1>
-        <p className="mt-4 text-slate-300">{test.description}</p>
-        <p className="mt-2 text-sm text-slate-400">Duration: {test.duration_minutes} minutes</p>
-        {query.error ? <div className="mt-6 rounded-md border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-100">{query.error}</div> : null}
-        {questions.length > 0 ? <MockTestForm testId={test.id} durationMinutes={test.duration_minutes} questions={questions} /> : <p className="mt-10 text-slate-400">This test has no published questions yet.</p>}
+      <main className="min-h-screen bg-[#05070d] px-6 py-10 text-white sm:py-14">
+        <div className="mx-auto max-w-7xl">
+          <Link href="/test-series" className="text-sm font-semibold text-cyan-100/80 hover:text-cyan-100">
+            Back to tests
+          </Link>
+          <section className="mb-8 mt-5 rounded-lg border border-white/10 bg-white/[0.04] p-6 sm:p-8">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+                  {test.exam} mock test
+                </div>
+                <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">{test.title}</h1>
+                <p className="mt-4 max-w-2xl text-white/55">{test.description}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                  <p className="text-2xl font-semibold">{test.durationMinutes}</p>
+                  <p className="text-white/40">Minutes</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                  <p className="text-2xl font-semibold">{test.questions.length}</p>
+                  <p className="text-white/40">Questions</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                  <p className="text-2xl font-semibold">-{test.negativeMarks}</p>
+                  <p className="text-white/40">Negative</p>
+                </div>
+              </div>
+            </div>
+          </section>
+          <MockTestRunner test={test} />
+        </div>
       </main>
       <SiteFooter />
     </>

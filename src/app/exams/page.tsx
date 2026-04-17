@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
+import { ArrowRight, BookOpen, Layers } from "lucide-react";
 
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { exams, subjectSections } from "@/lib/catalog";
@@ -11,31 +11,52 @@ export default function ExamsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-6 py-20">
-        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-          <section>
-            <div className="inline-flex rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-sm text-emerald-100">Free exam hubs</div>
-            <h1 className="mt-5 text-5xl font-semibold">Exams</h1>
-            <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">Browse UPSC, APSC, SSC, Railway, Banking, Police, State PSC, Teaching, Defence, and Assam government job preparation with database-backed questions, PDFs, mock tests, and current affairs relevance.</p>
-          </section>
-          <LanguageSwitcher />
-        </div>
-        <section className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {exams.map((exam) => (
-            <Link key={exam.slug} href={`/exams/${exam.slug}`} className="rounded-lg border border-white/10 bg-white/5 p-6 transition hover:border-cyan-300/40 hover:bg-white/10">
-              <h2 className="text-2xl font-semibold">{exam.name}</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">{exam.overview}</p>
-              <div className="mt-5 text-sm text-cyan-200">Open preparation hub</div>
-            </Link>
-          ))}
+      <main className="min-h-screen bg-[#f7f8fb] px-6 py-20 text-slate-950">
+        <section className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm">
+              <BookOpen className="size-4" />
+              Free exam hubs
+            </div>
+            <h1 className="mt-6 text-5xl font-semibold tracking-[-0.04em] sm:text-7xl">Exam preparation hubs.</h1>
+            <p className="mt-5 text-lg leading-8 text-slate-600">
+              Browse UPSC, APSC, SSC, Railway, Banking, Police, State PSC, Teaching, Defence, and Assam government job preparation paths.
+            </p>
+          </div>
+
+          <div className="mt-10 flex items-center gap-3">
+            <Layers className="size-5 text-cyan-700" />
+            <h2 className="text-xl font-semibold">All exam categories</h2>
+            <span className="ml-auto rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-500 shadow-sm">{exams.length} exams</span>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {exams.map((exam) => (
+              <Link key={exam.slug} href={`/exams/${exam.slug}`} className="group rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-950/10">
+                <div className="flex size-11 items-center justify-center rounded-lg bg-slate-950 text-white">
+                  <BookOpen className="size-5" />
+                </div>
+                <h3 className="mt-5 text-2xl font-semibold tracking-[-0.02em]">{exam.name}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{exam.overview}</p>
+                <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-700">
+                  Open preparation hub
+                  <ArrowRight className="size-4 transition group-hover:translate-x-1" />
+                </div>
+              </Link>
+            ))}
+          </div>
         </section>
-        <section className="mt-16">
-          <h2 className="text-3xl font-semibold">Subject sections</h2>
-          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+
+        <section className="mx-auto mt-16 max-w-7xl border-t border-slate-200 pt-12">
+          <div className="max-w-2xl">
+            <h2 className="text-4xl font-semibold tracking-[-0.04em]">Subject sections</h2>
+            <p className="mt-4 text-slate-600">Deep-dive into focused subject areas across all exam categories.</p>
+          </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {subjectSections.map((section) => (
-              <Link key={section.slug} href={`/subjects/${section.slug}`} className="rounded-lg border border-white/10 bg-white/5 p-6 transition hover:border-emerald-300/40 hover:bg-white/10">
-                <h3 className="text-xl font-semibold">{section.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-300">{section.description}</p>
+              <Link key={section.slug} href={`/subjects/${section.slug}`} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:border-cyan-200">
+                <h3 className="text-xl font-semibold tracking-[-0.02em]">{section.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{section.description}</p>
               </Link>
             ))}
           </div>

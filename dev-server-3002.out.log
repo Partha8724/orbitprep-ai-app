@@ -1,0 +1,10 @@
+
+> orbitprep-ai@0.1.0 dev
+> next dev --port 3002
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://localhost:3002
+- Network:       http://192.168.31.36:3002
+- Environments: .env.local
+✓ Ready in 1499ms
+[?25h

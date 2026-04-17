@@ -1,12 +1,14 @@
 ﻿import type { Metadata } from "next";
 import "./globals.css";
 
+
 export const metadata: Metadata = {
   title: {
-    default: "OrbitPrep AI - Government Exam Preparation Platform",
+    default: "OrbitPrep AI - AI-Powered Government Exam Preparation",
     template: "%s | OrbitPrep AI",
   },
-  description: "Prepare for UPSC, APSC, SSC, Railway, Banking and government exams with AI mentor, mock tests, PDFs, previous papers, and daily current affairs.",
+  description:
+    "Prepare for UPSC, APSC, SSC, Railway, Banking and government exams with AI mentor, mock tests, PDFs, previous papers, and daily current affairs.",
   metadataBase: new URL("https://orbitprep-ai.vercel.app"),
   openGraph: {
     title: "OrbitPrep AI - Government Exam Prep",
@@ -19,10 +21,15 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="bg-[#050816] text-white antialiased">{children}</body>
+      <body className="bg-[#050816] text-white antialiased font-sans">{children}</body>
     </html>
   );
 }
+
+
+
