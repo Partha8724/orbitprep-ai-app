@@ -12,6 +12,7 @@ const links = [
   { href: "/current-affairs", label: "Current Affairs" },
   { href: "/test-series", label: "Tests" },
   { href: "/ai-mentor", label: "AI Mentor" },
+  { href: "/translator", label: "Translator" },
 ];
 
 export function SiteHeader() {

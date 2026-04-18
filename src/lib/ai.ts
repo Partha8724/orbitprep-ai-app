@@ -13,15 +13,15 @@ export async function generateEducationContent({
     throw new Error("OPENAI_API_KEY is required for AI generation.");
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-      input: [
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      messages: [
         {
           role: "system",
           content:
@@ -36,7 +36,7 @@ export async function generateEducationContent({
   });
 
   const body = (await response.json()) as {
-    output_text?: string;
+    choices?: Array<{ message?: { content?: string } }>;
     error?: { message?: string };
   };
 
@@ -44,9 +44,11 @@ export async function generateEducationContent({
     throw new Error(body.error?.message || "AI generation failed.");
   }
 
-  if (!body.output_text) {
+  const output = body.choices?.[0]?.message?.content;
+
+  if (!output) {
     throw new Error("AI provider returned no content.");
   }
 
-  return body.output_text;
+  return output;
 }

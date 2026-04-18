@@ -54,7 +54,7 @@ export function MockTestResults({ attemptId }: { attemptId: string }) {
 
   if (!loaded) {
     return (
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-8 text-white/60">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-8 text-white/60 shadow-[0_24px_80px_rgba(0,0,0,0.3)]">
         Loading result...
       </div>
     );
@@ -62,7 +62,7 @@ export function MockTestResults({ attemptId }: { attemptId: string }) {
 
   if (!attempt || !test) {
     return (
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-8">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-8 shadow-[0_24px_80px_rgba(0,0,0,0.3)]">
         <CircleAlert className="size-10 text-amber-200" />
         <h1 className="mt-4 text-3xl font-semibold text-white">Result not found</h1>
         <p className="mt-3 max-w-2xl text-white/55">
@@ -90,7 +90,7 @@ export function MockTestResults({ attemptId }: { attemptId: string }) {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-lg border border-white/10 bg-white/[0.04] p-6 sm:p-8">
+      <section className="rounded-lg border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100/70">Result analysis</p>
@@ -124,7 +124,7 @@ export function MockTestResults({ attemptId }: { attemptId: string }) {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.04 }}
-              className="rounded-lg border border-white/10 bg-slate-950/45 p-4"
+              className="rounded-lg border border-white/10 bg-black/35 p-4"
             >
               <p className="text-xs uppercase tracking-[0.18em] text-white/35">{metric.label}</p>
               <p className="mt-2 text-2xl font-semibold text-white">{metric.value}</p>
@@ -134,7 +134,7 @@ export function MockTestResults({ attemptId }: { attemptId: string }) {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-6">
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.25)]">
           <h2 className="text-xl font-semibold text-white">Topic performance</h2>
           <div className="mt-5 space-y-4">
             {topicStats.map((topic) => (
@@ -145,7 +145,7 @@ export function MockTestResults({ attemptId }: { attemptId: string }) {
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-rose-300 via-amber-300 to-emerald-300"
+                    className="h-full rounded-full bg-white"
                     style={{ width: `${topic.accuracy}%` }}
                   />
                 </div>
@@ -157,14 +157,14 @@ export function MockTestResults({ attemptId }: { attemptId: string }) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-6">
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.25)]">
           <h2 className="text-xl font-semibold text-white">Answer review</h2>
           <div className="mt-5 space-y-4">
             {test.questions.map((question, index) => {
               const selected = attempt.answers[question.id];
               const correct = selected === question.correctAnswer;
               return (
-                <article key={question.id} className="rounded-lg border border-white/10 bg-slate-950/45 p-5">
+                <article key={question.id} className="rounded-lg border border-white/10 bg-black/35 p-5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/55">
                       Q{index + 1}

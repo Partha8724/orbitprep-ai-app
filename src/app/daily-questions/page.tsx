@@ -34,15 +34,36 @@ const optionLabels = ["A", "B", "C", "D"];
 export default async function DailyQuestionsPage() {
   await requireProfile();
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: dailyRows, error: dailyError } = await supabase
+    .from("daily_questions")
+    .select("id, display_date, sort_order, questions(id, question_text, options, correct_answer, explanation, difficulty, source_type, topics(name))")
+    .eq("status", "published")
+    .lte("display_date", today)
+    .order("display_date", { ascending: false })
+    .order("sort_order", { ascending: true })
+    .limit(10);
+
+  const scheduledQuestions = dailyError
+    ? []
+    : ((dailyRows || []) as any[])
+        .map((row) => (Array.isArray(row.questions) ? row.questions[0] : row.questions))
+        .filter(Boolean);
+
+  const fallbackQuery = scheduledQuestions.length === 0
+    ? await supabase
     .from("questions")
     .select("id, question_text, options, correct_answer, explanation, difficulty, source_type, topics(name)")
     .eq("status", "approved")
     .order("created_at", { ascending: false })
-    .limit(10);
+        .limit(10)
+    : { data: [], error: null };
 
-  if (error) throw new Error(error.message);
-  const questions = (data || []) as QuestionRow[];
+  const questions = (scheduledQuestions.length > 0 ? scheduledQuestions : fallbackQuery.data || []) as QuestionRow[];
+  const loadMessage = dailyError || fallbackQuery.error
+    ? "Daily practice is still being prepared. Approved questions will appear here when the database is ready."
+    : null;
 
   return (
     <>
@@ -71,6 +92,11 @@ export default async function DailyQuestionsPage() {
             {questions.length > 0 && (
               <div style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 100, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
                 <ClipboardList style={{ width: 12, height: 12 }} /> {questions.length} questions today
+              </div>
+            )}
+            {loadMessage && (
+              <div style={{ margin: "18px auto 0", maxWidth: 620, borderRadius: 12, border: "1px solid rgba(16,185,129,0.18)", background: "rgba(16,185,129,0.07)", padding: "12px 16px", fontSize: 13, lineHeight: 1.7, color: "rgba(255,255,255,0.62)" }}>
+                {loadMessage}
               </div>
             )}
           </div>

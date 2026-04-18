@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 import { MockTestRunner } from "@/components/mock-test-runner";
+import Navbar from "@/components/Navbar";
+import { PremiumCard, PremiumPageShell, SectionGlowLines } from "@/components/premium";
 import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
 import { getMockTest, mockTests } from "@/lib/mock-tests";
 
 export function generateStaticParams() {
@@ -27,42 +29,47 @@ export default async function TestAttemptPage({ params }: PageProps) {
   }
 
   return (
-    <>
-      <SiteHeader />
-      <main className="min-h-screen bg-[#05070d] px-6 py-10 text-white sm:py-14">
-        <div className="mx-auto max-w-7xl">
-          <Link href="/test-series" className="text-sm font-semibold text-cyan-100/80 hover:text-cyan-100">
-            Back to tests
+    <PremiumPageShell>
+      <Navbar />
+      <div className="relative mx-auto max-w-7xl px-6 pb-20 pt-32 md:px-12 md:pt-40">
+        <SectionGlowLines />
+        <div className="flex flex-col gap-12">
+          <Link href="/test-series" className="group flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/42 transition-colors hover:text-white">
+            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
+            Back to Assessment Center
           </Link>
-          <section className="mb-8 mt-5 rounded-lg border border-white/10 bg-white/[0.04] p-6 sm:p-8">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
-                  {test.exam} mock test
+
+          <PremiumCard className="flex flex-col gap-10 p-7 md:p-10">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex flex-col gap-5">
+                <div className="inline-flex w-fit rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">
+                  {test.exam} track
                 </div>
-                <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">{test.title}</h1>
-                <p className="mt-4 max-w-2xl text-white/55">{test.description}</p>
+                <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">{test.title}</h1>
+                <p className="max-w-2xl text-lg leading-relaxed text-white/48">{test.description}</p>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-                  <p className="text-2xl font-semibold">{test.durationMinutes}</p>
-                  <p className="text-white/40">Minutes</p>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] p-5 text-center">
+                  <p className="text-2xl font-semibold tracking-tight">{test.durationMinutes}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/28">Minutes</p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-                  <p className="text-2xl font-semibold">{test.questions.length}</p>
-                  <p className="text-white/40">Questions</p>
+                <div className="flex flex-col items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] p-5 text-center">
+                  <p className="text-2xl font-semibold tracking-tight">{test.questions.length}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/28">Items</p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-                  <p className="text-2xl font-semibold">-{test.negativeMarks}</p>
-                  <p className="text-white/40">Negative</p>
+                <div className="flex flex-col items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] p-5 text-center">
+                  <p className="text-2xl font-semibold tracking-tight">-{test.negativeMarks}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/28">Negative</p>
                 </div>
               </div>
             </div>
-          </section>
+          </PremiumCard>
+
           <MockTestRunner test={test} />
         </div>
-      </main>
+      </div>
       <SiteFooter />
-    </>
+    </PremiumPageShell>
   );
 }

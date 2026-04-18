@@ -140,13 +140,39 @@ export function getSubjectSection(slug: string) {
   return subjectSections.find((subject) => subject.slug === slug);
 }
 
+function safeData<T>(result: { data: T[] | null; error: { message: string } | null }, scope: string) {
+  if (result.error) {
+    console.warn(`[catalog:${scope}] ${result.error.message}`);
+    return [];
+  }
+  return result.data || [];
+}
+
+export async function getPublishedExams() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("exams")
+    .select("id, name, slug, description, is_active")
+    .eq("is_active", true)
+    .order("name");
+
+  if (error) {
+    console.warn(`[catalog:exams] ${error.message}`);
+    return [];
+  }
+
+  return data || [];
+}
+
 export async function getExamPageData(slug: string) {
   const supabase = await createSupabaseServerClient();
-  const { data: exam } = await supabase
+  const { data: exam, error: examError } = await supabase
     .from("exams")
     .select("id, name, slug, description, is_active")
     .eq("slug", slug)
     .maybeSingle();
+
+  if (examError) console.warn(`[catalog:exam:${slug}] ${examError.message}`);
 
   const examId = exam?.id as string | undefined;
   const tag = getExam(slug)?.name.toLowerCase() || slug;
@@ -178,11 +204,11 @@ export async function getExamPageData(slug: string) {
 
   return {
     exam,
-    subjects: subjects.data || [],
-    questions: questions.data || [],
-    pdfs: pdfs.data || [],
-    tests: tests.data || [],
-    affairs: affairs.data || [],
+    subjects: safeData(subjects, `exam:${slug}:subjects`),
+    questions: safeData(questions, `exam:${slug}:questions`),
+    pdfs: safeData(pdfs, `exam:${slug}:pdfs`),
+    tests: safeData(tests, `exam:${slug}:tests`),
+    affairs: safeData(affairs, `exam:${slug}:affairs`),
   };
 }
 
@@ -216,8 +242,8 @@ export async function getSubjectSectionData(slug: string) {
 
   return {
     section,
-    questions: questions.data || [],
-    pdfs: pdfs.data || [],
-    tests: tests.data || [],
+    questions: safeData(questions, `subject:${slug}:questions`),
+    pdfs: safeData(pdfs, `subject:${slug}:pdfs`),
+    tests: safeData(tests, `subject:${slug}:tests`),
   };
 }

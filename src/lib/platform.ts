@@ -41,6 +41,10 @@ export type StudentAttempt = {
   mock_tests: Array<{ title: string }> | { title: string } | null;
 };
 
+function logPlatformQueryError(scope: string, message: string) {
+  console.warn(`[platform:${scope}] ${message}`);
+}
+
 export async function getStudentLearningData(profile: Profile) {
   const supabase = await createSupabaseServerClient();
 
@@ -79,13 +83,13 @@ export async function getStudentLearningData(profile: Profile) {
     attemptsQuery,
   ]);
 
-  for (const query of [pdfs, tests, currentAffairs, attempts]) {
-    if (query.error) {
-      throw new Error(query.error.message);
-    }
-  }
+  if (pdfs.error) logPlatformQueryError("pdfs", pdfs.error.message);
+  if (tests.error) logPlatformQueryError("mock_tests", tests.error.message);
+  if (currentAffairs.error) logPlatformQueryError("current_affairs", currentAffairs.error.message);
+  if (attempts.error) logPlatformQueryError("test_attempts", attempts.error.message);
 
-  const weakTopics = ((attempts.data || []) as unknown as StudentAttempt[])
+  const safeAttempts = attempts.error ? [] : (attempts.data || []);
+  const weakTopics = (safeAttempts as unknown as StudentAttempt[])
     .flatMap((attempt) =>
       Object.entries(attempt.topic_breakdown || {}).map(([topicId, stats]) => ({
         topicId,
@@ -98,10 +102,10 @@ export async function getStudentLearningData(profile: Profile) {
     .slice(0, 5);
 
   return {
-    pdfs: (pdfs.data || []) as PublishedPdf[],
-    tests: (tests.data || []) as PublishedMockTest[],
-    currentAffairs: (currentAffairs.data || []) as PublishedCurrentAffair[],
-    attempts: (attempts.data || []) as StudentAttempt[],
+    pdfs: (pdfs.error ? [] : pdfs.data || []) as PublishedPdf[],
+    tests: (tests.error ? [] : tests.data || []) as PublishedMockTest[],
+    currentAffairs: (currentAffairs.error ? [] : currentAffairs.data || []) as PublishedCurrentAffair[],
+    attempts: safeAttempts as StudentAttempt[],
     weakTopics,
   };
 }
@@ -121,11 +125,9 @@ export async function getAdminAnalytics() {
 
   const [users, premiumUsers, pdfs, questions, attempts, aiLogs, aiQueue, currentAffairsQueue] = queries;
 
-  for (const query of queries) {
-    if (query.error) {
-      throw new Error(`Could not load analytics: ${query.error.message}`);
-    }
-  }
+  queries.forEach((query, index) => {
+    if (query.error) logPlatformQueryError(`admin_analytics_${index}`, query.error.message);
+  });
 
   return {
     users: users.count || 0,
@@ -145,10 +147,13 @@ export async function getAdminQueues() {
     supabase.from("current_affairs").select("id, title, summary, category, status, published_date, created_at").order("created_at", { ascending: false }).limit(20),
   ]);
 
-  if (aiGenerations.error) throw new Error(`Could not load AI generations: ${aiGenerations.error.message}`);
-  if (currentAffairs.error) throw new Error(`Could not load current affairs queue: ${currentAffairs.error.message}`);
+  if (aiGenerations.error) logPlatformQueryError("ai_generations_queue", aiGenerations.error.message);
+  if (currentAffairs.error) logPlatformQueryError("current_affairs_queue", currentAffairs.error.message);
 
-  return { aiGenerations: aiGenerations.data || [], currentAffairs: currentAffairs.data || [] };
+  return {
+    aiGenerations: aiGenerations.error ? [] : aiGenerations.data || [],
+    currentAffairs: currentAffairs.error ? [] : currentAffairs.data || [],
+  };
 }
 
 export async function getQuestionBankAdminData() {
@@ -160,11 +165,17 @@ export async function getQuestionBankAdminData() {
     supabase.from("questions").select("id, question_text, difficulty, source_type, status, created_at").order("created_at", { ascending: false }).limit(25),
   ]);
 
-  for (const query of [exams, subjects, topics, questions]) {
-    if (query.error) throw new Error(`Could not load question bank: ${query.error.message}`);
-  }
+  if (exams.error) logPlatformQueryError("question_bank_exams", exams.error.message);
+  if (subjects.error) logPlatformQueryError("question_bank_subjects", subjects.error.message);
+  if (topics.error) logPlatformQueryError("question_bank_topics", topics.error.message);
+  if (questions.error) logPlatformQueryError("question_bank_questions", questions.error.message);
 
-  return { exams: exams.data || [], subjects: subjects.data || [], topics: topics.data || [], questions: questions.data || [] };
+  return {
+    exams: exams.error ? [] : exams.data || [],
+    subjects: subjects.error ? [] : subjects.data || [],
+    topics: topics.error ? [] : topics.data || [],
+    questions: questions.error ? [] : questions.data || [],
+  };
 }
 
 export async function getMockTestAdminData() {
@@ -174,10 +185,10 @@ export async function getMockTestAdminData() {
     supabase.from("questions").select("id, question_text, difficulty, status").eq("status", "approved").order("created_at", { ascending: false }).limit(50),
   ]);
 
-  if (tests.error) throw new Error(`Could not load mock tests: ${tests.error.message}`);
-  if (questions.error) throw new Error(`Could not load approved questions: ${questions.error.message}`);
+  if (tests.error) logPlatformQueryError("admin_mock_tests", tests.error.message);
+  if (questions.error) logPlatformQueryError("admin_mock_questions", questions.error.message);
 
-  return { tests: tests.data || [], questions: questions.data || [] };
+  return { tests: tests.error ? [] : tests.data || [], questions: questions.error ? [] : questions.data || [] };
 }
 
 export async function getPublishedMockTests(_profile: Profile) {
@@ -189,6 +200,9 @@ export async function getPublishedMockTests(_profile: Profile) {
     .eq("status", "published")
     .order("created_at", { ascending: false });
 
-  if (error) throw new Error(`Could not load tests: ${error.message}`);
+  if (error) {
+    logPlatformQueryError("published_mock_tests", error.message);
+    return [];
+  }
   return (data || []) as PublishedMockTest[];
 }

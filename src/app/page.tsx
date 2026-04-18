@@ -1,6 +1,7 @@
-﻿import Navbar from "@/components/Navbar";
+import Navbar from "@/components/Navbar";
 import ScrollHero from "@/components/ScrollHero";
 import FeaturesSection from "@/components/FeaturesSection";
+import { PremiumHomeSections } from "@/components/premium-home-sections";
 
 export default function HomePage() {
   return (
@@ -8,6 +9,7 @@ export default function HomePage() {
       <Navbar />
       <ScrollHero />
       <FeaturesSection />
+      <PremiumHomeSections />
     </main>
   );
 }

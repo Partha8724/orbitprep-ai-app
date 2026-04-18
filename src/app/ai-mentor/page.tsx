@@ -27,8 +27,11 @@ export default async function AiMentorPage({ searchParams }: PageProps) {
         .eq("user_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20);
-    if (error)
-        throw new Error(error.message);
+    const chatLoadMessage = error
+        ? error.code === "42P01" || error.message.toLowerCase().includes("ai_chats")
+            ? "AI Mentor chat history is being set up. You can still use the mentor after the database table is installed."
+            : "AI Mentor chat history could not load right now. You can still ask a new question."
+        : "";
     const chatHistory = (chats || []).reverse();
     return (<>
       <SiteHeader />
@@ -47,7 +50,7 @@ export default async function AiMentorPage({ searchParams }: PageProps) {
               <Bot style={{ width: 32, height: 32, color: "#06b6d4" }}/>
             </div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 100, background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.2)", fontSize: 12, fontWeight: 500, color: "#67e8f9", marginBottom: 20 }}>
-              <Sparkles style={{ width: 12, height: 12 }}/> Powered by Gemini AI
+              <Sparkles style={{ width: 12, height: 12 }}/> Powered by OpenAI
             </div>
             <h1 style={{ fontSize: "clamp(36px, 5vw, 56px)", fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 14, lineHeight: 1.1 }}>
               Your{" "}
@@ -66,6 +69,10 @@ export default async function AiMentorPage({ searchParams }: PageProps) {
           {/* Error */}
           {params.error && (<div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", fontSize: 13, color: "#fca5a5", marginBottom: 20 }}>
               {params.error}
+            </div>)}
+
+          {chatLoadMessage && (<div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.18)", fontSize: 13, color: "#a5f3fc", marginBottom: 20, lineHeight: 1.6 }}>
+              {chatLoadMessage}
             </div>)}
 
           {/* Chat history */}
@@ -143,7 +150,7 @@ export default async function AiMentorPage({ searchParams }: PageProps) {
             boxSizing: "border-box",
         }}/>
               <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>Powered by Gemini · Responses in seconds</span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>Powered by OpenAI · Responses in seconds</span>
                 <button id="ai-mentor-submit" type="submit" style={{
             display: "flex",
             alignItems: "center",

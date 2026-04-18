@@ -1,122 +1,229 @@
+import Link from "next/link";
+import { ArrowRight, BookOpen, Languages, Target, TrendingUp } from "lucide-react";
+
 import Navbar from "@/components/Navbar";
+import { GradientDivider, PremiumCard, PremiumPageShell, PremiumSection, SectionGlowLines } from "@/components/premium";
+import { requireProfile } from "@/lib/auth";
+import { mockTests } from "@/lib/mock-tests";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getLanguageLabel } from "@/lib/translator/languages";
 
-const stats = [
-    { title: "Tests Taken", value: "12" },
-    { title: "Average Score", value: "78%" },
-    { title: "Current Streak", value: "5 Days" },
-    { title: "Rank Progress", value: "+14" },
-];
+function getTestName(testId: string) {
+  const test = mockTests.find((item) => item.id === testId);
+  return test ? test.title : "Practice Test";
+}
 
-const recentTests = [
-    { name: "UPSC Polity Mock 1", score: "82%", date: "Today" },
-    { name: "APSC Geography Practice", score: "74%", date: "Yesterday" },
-    { name: "Current Affairs Quiz", score: "88%", date: "2 days ago" },
-];
+function calculateStreak(attempts: any[]) {
+  if (!attempts || attempts.length === 0) return 0;
+  const dates = attempts.map((attempt) => new Date(attempt.created_at).toDateString());
+  const uniqueDates = Array.from(new Set(dates));
+  let streak = 0;
+  const today = new Date();
+  for (let index = 0; index < uniqueDates.length; index += 1) {
+    const checkDate = new Date();
+    checkDate.setDate(today.getDate() - index);
+    if (uniqueDates.includes(checkDate.toDateString())) streak += 1;
+    else break;
+  }
+  return streak;
+}
 
-const weakAreas = [
-    "Modern History",
-    "Environment",
-    "Assam Geography",
-];
+export default async function DashboardPage() {
+  const profile = await requireProfile();
+  const supabase = await createSupabaseServerClient();
 
-export default function DashboardPage() {
-    return (
-        <main className="min-h-screen bg-[#050816] text-white">
-            <Navbar />
+  const { data: attempts, error: attemptsError } = await supabase
+    .from("test_attempts")
+    .select("*")
+    .eq("user_id", profile.id)
+    .order("created_at", { ascending: false });
 
-            <section className="px-6 pb-20 pt-32 md:px-12">
-                <div className="mx-auto max-w-7xl">
-                    <div className="max-w-3xl">
-                        <p className="mb-4 text-sm uppercase tracking-[0.3em] text-white/60">
-                            Student Dashboard
-                        </p>
-                        <h1 className="text-4xl font-bold leading-tight md:text-6xl">
-                            Track your preparation in one place
-                        </h1>
-                        <p className="mt-5 text-white/75 md:text-lg">
-                            Monitor tests, scores, weak areas, and daily progress with a cleaner premium dashboard.
-                        </p>
+  const { data: translationJobs, error: translationJobsError } = await supabase
+    .from("translation_jobs")
+    .select("id, title, target_language, status, created_at")
+    .eq("user_id", profile.id)
+    .order("created_at", { ascending: false })
+    .limit(4);
+
+  const safeAttempts = attemptsError ? [] : attempts || [];
+  const safeTranslationJobs = translationJobsError ? [] : translationJobs || [];
+
+  const totalTests = safeAttempts.length;
+  const avgScore = totalTests > 0 ? Math.round(safeAttempts.reduce((acc, curr) => acc + (curr.score_percent || 0), 0) / totalTests) : 0;
+  const streak = calculateStreak(safeAttempts);
+
+  const recentTests = safeAttempts.slice(0, 5).map((attempt) => ({
+    id: attempt.id,
+    name: getTestName(attempt.mock_test_id),
+    score: `${attempt.score_percent}%`,
+    date: new Date(attempt.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" }),
+  }));
+
+  const topicScores: Record<string, { total: number; correct: number }> = {};
+  safeAttempts.forEach((attempt) => {
+    const rawBreakdown = attempt.topic_breakdown as any;
+    const breakdown = Array.isArray(rawBreakdown)
+      ? rawBreakdown
+      : Object.entries(rawBreakdown || {}).map(([topic, stats]) => ({ topic, ...(stats as Record<string, number>) }));
+    breakdown.forEach((topic) => {
+      if (!topicScores[topic.topic]) topicScores[topic.topic] = { total: 0, correct: 0 };
+      topicScores[topic.topic].total += topic.total || 0;
+      topicScores[topic.topic].correct += topic.correct || 0;
+    });
+  });
+
+  const weakAreas = Object.entries(topicScores)
+    .filter(([, stats]) => stats.total > 0 && stats.correct / stats.total < 0.6)
+    .map(([topic]) => topic)
+    .slice(0, 3);
+
+  const stats = [
+    { title: "Total Tests", value: totalTests.toString(), icon: BookOpen },
+    { title: "Avg. Accuracy", value: `${avgScore}%`, icon: TrendingUp },
+    { title: "Daily Streak", value: `${streak} days`, icon: Target },
+    { title: "Account Tier", value: profile.is_premium ? "Premium" : "Free", icon: Languages },
+  ];
+
+  return (
+    <PremiumPageShell>
+      <Navbar />
+
+      <PremiumSection className="pb-20 pt-32 md:pt-40">
+        <SectionGlowLines />
+        <div className="flex flex-col gap-10">
+          <div className="grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
+            <div>
+              <p className="w-fit rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white/45">
+                Learning Analytics
+              </p>
+              <h1 className="mt-6 text-4xl font-semibold tracking-[-0.045em] sm:text-6xl">
+                Hello, {profile.full_name.split(" ")[0]}.
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-white/52">
+                Your preparation is evolving. Keep tests, translations, and weak-area signals in one focused workspace.
+              </p>
+            </div>
+            <PremiumCard className="p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/35">Today</p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.035em]">Choose the next useful action.</h2>
+              <div className="mt-6 grid gap-3">
+                <Link href="/test-series" className="rounded-lg bg-white px-5 py-3 text-center text-sm font-semibold text-black transition-colors hover:bg-white/90">
+                  Start test
+                </Link>
+                <Link href="/translator" className="rounded-lg border border-white/10 bg-white/[0.04] px-5 py-3 text-center text-sm font-semibold text-white/75 transition-colors hover:bg-white/[0.08] hover:text-white">
+                  Save notes
+                </Link>
+              </div>
+            </PremiumCard>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {stats.map(({ title, value, icon: Icon }) => (
+              <PremiumCard key={title} className="p-5 md:p-6">
+                <Icon className="size-5 text-white/55" />
+                <p className="mt-6 text-xs font-medium text-white/40">{title}</p>
+                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] md:text-4xl">{value}</h2>
+              </PremiumCard>
+            ))}
+          </div>
+
+          <GradientDivider />
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <PremiumCard className="p-6 lg:col-span-2 md:p-8">
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-2xl font-semibold tracking-[-0.03em]">Recent sessions</h3>
+                <Link href="/test-series" className="rounded-lg bg-white px-5 py-3 text-xs font-semibold text-black transition-colors hover:bg-white/90">
+                  Start new test
+                </Link>
+              </div>
+
+              <div className="mt-6 grid gap-3">
+                {recentTests.length > 0 ? recentTests.map((test) => (
+                  <Link key={test.id} href={`/test-series/results/${test.id}`} className="group flex items-center justify-between rounded-lg border border-white/10 bg-black/25 p-4 transition-colors hover:bg-white/[0.055]">
+                    <div>
+                      <h4 className="text-sm font-semibold text-white/90">{test.name}</h4>
+                      <p className="mt-1 text-xs text-white/35">{test.date}</p>
                     </div>
-
-                    <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-                        {stats.map((item) => (
-                            <div
-                                key={item.title}
-                                className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_80px_rgba(255,255,255,0.04)] backdrop-blur-xl"
-                            >
-                                <p className="text-sm text-white/60">{item.title}</p>
-                                <h2 className="mt-3 text-3xl font-bold">{item.value}</h2>
-                            </div>
-                        ))}
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-lg bg-white/[0.07] px-3 py-2 text-sm font-semibold text-white/80">{test.score}</span>
+                      <ArrowRight className="size-4 text-white/30 transition-transform group-hover:translate-x-1 group-hover:text-white/70" />
                     </div>
+                  </Link>
+                )) : (
+                  <div className="flex h-40 flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.12] text-center text-white/35">
+                    <p className="text-sm font-medium">Your activity history will appear here.</p>
+                  </div>
+                )}
+              </div>
+            </PremiumCard>
 
-                    <div className="mt-10 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-                        <div className="rounded-3xl border border-white/10 bg-white/5 p-7 backdrop-blur-xl">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-2xl font-semibold">Recent Test Activity</h3>
-                                <a
-                                    href="/test-series"
-                                    className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black"
-                                >
-                                    New Test
-                                </a>
-                            </div>
-
-                            <div className="mt-6 space-y-4">
-                                {recentTests.map((test) => (
-                                    <div
-                                        key={test.name}
-                                        className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 p-5 md:flex-row md:items-center md:justify-between"
-                                    >
-                                        <div>
-                                            <h4 className="text-lg font-semibold">{test.name}</h4>
-                                            <p className="mt-1 text-sm text-white/60">{test.date}</p>
-                                        </div>
-
-                                        <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-200">
-                                            Score: {test.score}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="rounded-3xl border border-white/10 bg-white/5 p-7 backdrop-blur-xl">
-                                <h3 className="text-2xl font-semibold">Weak Areas</h3>
-                                <div className="mt-5 space-y-3">
-                                    {weakAreas.map((item) => (
-                                        <div
-                                            key={item}
-                                            className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-white/85"
-                                        >
-                                            {item}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="rounded-3xl border border-white/10 bg-white/5 p-7 backdrop-blur-xl">
-                                <h3 className="text-2xl font-semibold">Quick Actions</h3>
-                                <div className="mt-5 flex flex-col gap-3">
-                                    <a
-                                        href="/test-series"
-                                        className="rounded-full bg-white px-5 py-3 text-center font-semibold text-black"
-                                    >
-                                        Start Mock Test
-                                    </a>
-                                    <a
-                                        href="/pricing"
-                                        className="rounded-full border border-white/20 bg-white/10 px-5 py-3 text-center font-semibold text-white"
-                                    >
-                                        Upgrade Premium
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+            <div className="grid gap-6">
+              <PremiumCard className="p-6">
+                <h3 className="text-2xl font-semibold tracking-[-0.03em]">Focus points</h3>
+                <div className="mt-5 grid gap-3">
+                  {weakAreas.length > 0 ? weakAreas.map((item) => (
+                    <div key={item} className="rounded-lg border border-white/10 bg-white/[0.04] p-4 text-sm font-semibold text-white/72">
+                      {item}
                     </div>
+                  )) : (
+                    <p className="text-sm italic leading-6 text-white/35">
+                      {totalTests === 0 ? "Complete a diagnostic test to unlock focus insights." : "No major focus points identified."}
+                    </p>
+                  )}
                 </div>
-            </section>
-        </main>
-    );
+              </PremiumCard>
+
+              <PremiumCard className="p-6">
+                <h3 className="text-2xl font-semibold tracking-[-0.03em]">Quick actions</h3>
+                <div className="mt-5 grid gap-3">
+                  <Link href="/translator" className="rounded-lg border border-white/10 bg-white/[0.04] py-4 text-center text-sm font-semibold text-white/78 transition-colors hover:bg-white/[0.08] hover:text-white">
+                    Translate study material
+                  </Link>
+                  <Link href="/ai-mentor" className="rounded-lg border border-white/10 bg-white/[0.04] py-4 text-center text-sm font-semibold text-white/78 transition-colors hover:bg-white/[0.08] hover:text-white">
+                    Ask AI mentor
+                  </Link>
+                  <Link href="/pricing" className="rounded-lg bg-white py-4 text-center text-sm font-semibold text-black transition-colors hover:bg-white/90">
+                    Upgrade to premium
+                  </Link>
+                </div>
+              </PremiumCard>
+            </div>
+
+            <PremiumCard className="p-6 lg:col-span-2 md:p-8">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-2xl font-semibold tracking-[-0.03em]">Study Material Translator</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/42">Recent saved readers for revision.</p>
+                </div>
+                <Link href="/translator" className="shrink-0 rounded-lg bg-white px-5 py-3 text-xs font-semibold text-black transition-colors hover:bg-white/90">
+                  Translate
+                </Link>
+              </div>
+
+              <div className="mt-6 grid gap-3">
+                {safeTranslationJobs.length > 0 ? safeTranslationJobs.map((job) => (
+                  <Link key={job.id} href={`/translator/${job.id}`} className="group flex items-center justify-between rounded-lg border border-white/10 bg-black/25 p-4 transition-colors hover:bg-white/[0.055]">
+                    <div>
+                      <h4 className="text-sm font-semibold text-white/90">{job.title}</h4>
+                      <p className="mt-1 text-xs text-white/35">
+                        {getLanguageLabel(job.target_language)} - {new Date(job.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+                      </p>
+                    </div>
+                    <span className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                      {job.status}
+                    </span>
+                  </Link>
+                )) : (
+                  <div className="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.12] text-center text-white/35">
+                    <p className="max-w-md text-sm leading-6">Demo mode translation keeps notes available in the reader while real translation is prepared.</p>
+                  </div>
+                )}
+              </div>
+            </PremiumCard>
+          </div>
+        </div>
+      </PremiumSection>
+    </PremiumPageShell>
+  );
 }

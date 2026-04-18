@@ -3,11 +3,20 @@ import { ArrowRight, BookOpen, Layers } from "lucide-react";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { exams, subjectSections } from "@/lib/catalog";
+import { exams, getPublishedExams, subjectSections } from "@/lib/catalog";
 
 export const metadata = { title: "Exams" };
 
-export default function ExamsPage() {
+export default async function ExamsPage() {
+  const dbExams = await getPublishedExams();
+  const examItems = dbExams.length > 0
+    ? dbExams.map((exam) => ({
+        name: exam.name,
+        slug: exam.slug,
+        overview: exam.description || "Exam preparation resources, questions, PDFs, mock tests, and current affairs will appear here.",
+      }))
+    : exams;
+
   return (
     <>
       <SiteHeader />
@@ -27,11 +36,11 @@ export default function ExamsPage() {
           <div className="mt-10 flex items-center gap-3">
             <Layers className="size-5 text-cyan-700" />
             <h2 className="text-xl font-semibold">All exam categories</h2>
-            <span className="ml-auto rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-500 shadow-sm">{exams.length} exams</span>
+            <span className="ml-auto rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-500 shadow-sm">{examItems.length} exams</span>
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {exams.map((exam) => (
+            {examItems.map((exam) => (
               <Link key={exam.slug} href={`/exams/${exam.slug}`} className="group rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-950/10">
                 <div className="flex size-11 items-center justify-center rounded-lg bg-slate-950 text-white">
                   <BookOpen className="size-5" />

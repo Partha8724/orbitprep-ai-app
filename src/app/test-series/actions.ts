@@ -1,104 +1,98 @@
-﻿"use server";
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth";
+import { getMockTest, type MockTest, type MockOption, scoreMockAttempt } from "@/lib/mock-tests";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-function value(formData: FormData, key: string) {
-  const item = formData.get(key);
-  return typeof item === "string" ? item : "";
-}
-
-export async function submitMockTestAction(formData: FormData) {
+export async function saveTestAttemptAction(
+  test: MockTest,
+  answers: Record<string, MockOption["label"] | "">,
+  durationSeconds: number
+) {
   const profile = await requireProfile();
-  const testId = value(formData, "test_id");
-
-  if (!testId) {
-    redirect("/test-series?error=Missing%20test%20id");
-  }
-
+  const attempt = scoreMockAttempt(test, answers, durationSeconds);
   const supabase = await createSupabaseServerClient();
-  const { data: test, error: testError } = await supabase
-    .from("mock_tests")
-    .select("id, is_premium")
-    .eq("id", testId)
-    .eq("status", "published")
-    .single();
 
-  if (testError || !test) {
-    redirect("/test-series?error=Test%20not%20available");
-  }
-
-
-  const { data: rows, error } = await supabase
-    .from("mock_test_questions")
-    .select("question_id, questions(id, correct_answer, topic_id)")
-    .eq("mock_test_id", testId);
-
-  if (error) {
-    redirect(`/test-series/${testId}?error=${encodeURIComponent(error.message)}`);
-  }
-
-  const answers = (rows || []).map((row) => {
-    const question = Array.isArray(row.questions) ? row.questions[0] : row.questions;
-    const selectedAnswer = value(formData, `question_${row.question_id}`);
-    const isCorrect = selectedAnswer === question?.correct_answer;
-
-    return {
-      questionId: row.question_id as string,
-      topicId: (question?.topic_id as string | null) || null,
-      selectedAnswer,
-      isCorrect,
-    };
-  });
-  const totalQuestions = answers.length;
-  const correctAnswers = answers.filter((answer) => answer.isCorrect).length;
-  const scorePercent = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-  const topicBreakdown = answers.reduce<Record<string, { total: number; correct: number }>>((acc, answer) => {
-    const key = answer.topicId || "unmapped";
-    acc[key] = acc[key] || { total: 0, correct: 0 };
-    acc[key].total += 1;
-    if (answer.isCorrect) {
-      acc[key].correct += 1;
+  // Calculate topic breakdown
+  const topicStats: Record<string, { total: number; correct: number }> = {};
+  test.questions.forEach((q) => {
+    if (!topicStats[q.topic]) {
+      topicStats[q.topic] = { total: 0, correct: 0 };
     }
-    return acc;
-  }, {});
+    topicStats[q.topic].total += 1;
+    if (answers[q.id] === q.correctAnswer) {
+      topicStats[q.topic].correct += 1;
+    }
+  });
 
-  const { data: attempt, error: attemptError } = await supabase
+  const topicBreakdown = Object.entries(topicStats).map(([topic, stats]) => ({
+    topic,
+    total: stats.total,
+    correct: stats.correct,
+    percentage: Math.round((stats.correct / stats.total) * 100),
+  }));
+
+  // Insert attempt
+  const { data: attemptData, error: attemptError } = await supabase
     .from("test_attempts")
     .insert({
       user_id: profile.id,
-      mock_test_id: testId,
-      total_questions: totalQuestions,
-      correct_answers: correctAnswers,
-      score_percent: scorePercent,
+      mock_test_id: test.id,
+      total_questions: attempt.totalQuestions,
+      correct_answers: attempt.correct,
+      score_percent: attempt.percentage,
       topic_breakdown: topicBreakdown,
     })
-    .select("id")
+    .select()
     .single();
 
-  if (attemptError || !attempt) {
-    redirect(`/test-series/${testId}?error=${encodeURIComponent(attemptError?.message || "Could not save attempt")}`);
+  if (attemptError) {
+    throw new Error(`Failed to save attempt: ${attemptError.message}`);
   }
 
-  const answerRows = answers.map((answer) => ({
-    attempt_id: attempt.id,
-    question_id: answer.questionId,
-    selected_answer: answer.selectedAnswer,
-    is_correct: answer.isCorrect,
+  // Insert answers
+  const answersToInsert = test.questions.map((q) => ({
+    attempt_id: attemptData.id,
+    question_id: q.id,
+    selected_answer: answers[q.id] || null,
+    is_correct: answers[q.id] === q.correctAnswer,
   }));
 
-  if (answerRows.length > 0) {
-    const { error: answerError } = await supabase.from("test_answers").insert(answerRows);
+  const { error: answersError } = await supabase.from("test_answers").insert(answersToInsert);
 
-    if (answerError) {
-      redirect(`/test-series/${testId}?error=${encodeURIComponent(answerError.message)}`);
-    }
+  if (answersError) {
+    console.error("Failed to save answers:", answersError.message);
+    // We don't throw here to at least keep the attempt
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/test-series");
-  redirect(`/test-series/results/${attempt.id}`);
+  
+  return attemptData.id;
+}
+
+export async function submitMockTestAction(formData: FormData) {
+  const testId = String(formData.get("test_id") || "");
+  const test = getMockTest(testId);
+
+  if (!test) {
+    throw new Error("Mock test not found.");
+  }
+
+  const answers = test.questions.reduce<Record<string, MockOption["label"] | "">>((acc, question) => {
+    const value = formData.get(`question_${question.id}`);
+    acc[question.id] = value === "A" || value === "B" || value === "C" || value === "D" ? value : "";
+    return acc;
+  }, {});
+
+  const durationSecondsValue = Number(formData.get("duration_seconds"));
+  const durationSeconds = Number.isFinite(durationSecondsValue) && durationSecondsValue > 0
+    ? durationSecondsValue
+    : test.durationMinutes * 60;
+
+  const attemptId = await saveTestAttemptAction(test, answers, durationSeconds);
+  redirect(`/test-series/results/${attemptId}`);
 }

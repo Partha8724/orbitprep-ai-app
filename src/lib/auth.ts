@@ -3,6 +3,29 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
+function fallbackProfileFromUser(user: Awaited<ReturnType<typeof getCurrentUser>>): Profile {
+  if (!user) {
+    throw new Error("Cannot create a fallback profile without a user.");
+  }
+
+  return {
+    id: user.id,
+    full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Student",
+    email: user.email || "",
+    role: "student",
+    is_premium: false,
+    created_at: user.created_at,
+  } as Profile;
+}
+
+function isMissingProfilesTableError(error: { code?: string; message?: string }) {
+  return (
+    error.code === "PGRST205" ||
+    error.message?.toLowerCase().includes("could not find the table 'public.profiles'") ||
+    error.message?.toLowerCase().includes("relation \"public.profiles\" does not exist")
+  );
+}
+
 export async function getCurrentUser() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -25,17 +48,26 @@ export async function getCurrentProfile() {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, role, is_premium, created_at")
-    .eq("id", user.id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, email, role, is_premium, created_at")
+      .eq("id", user.id)
+      .single();
 
-  if (error) {
-    throw new Error(`Could not load profile: ${error.message}`);
+    if (error) {
+      if (!isMissingProfilesTableError(error)) {
+        console.warn(`Profile fetch failed; using auth user fallback: ${error.message}`);
+      }
+
+      return fallbackProfileFromUser(user);
+    }
+
+    return data as Profile;
+  } catch (err) {
+    console.warn("Unexpected profile fallback:", err);
+    return fallbackProfileFromUser(user);
   }
-
-  return data as Profile;
 }
 
 export async function requireProfile() {

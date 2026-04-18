@@ -1,17 +1,30 @@
 import type { Metadata } from "next";
 import LoginForm from "@/components/LoginForm";
+import { redirectIfAuthenticated } from "@/lib/auth";
+import Navbar from "@/components/Navbar";
+import { PremiumPageShell, SectionGlowLines } from "@/components/premium";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Login",
+  title: "Sign In",
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  await redirectIfAuthenticated();
+
   return (
-    <main className="min-h-screen bg-[#050816] px-6 py-20 text-white">
-      <div className="mx-auto max-w-md pt-20">
-        <LoginForm />
+    <PremiumPageShell>
+      <Navbar />
+      <div className="relative flex min-h-screen flex-col items-center justify-center px-6 py-24">
+        <SectionGlowLines />
+        <div className="mb-8 max-w-xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/40">Welcome back</p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-white">Return to your study workspace.</h1>
+        </div>
+        <div className="w-full max-w-lg">
+          <LoginForm />
+        </div>
       </div>
-    </main>
+    </PremiumPageShell>
   );
 }

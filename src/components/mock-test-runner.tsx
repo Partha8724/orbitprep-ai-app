@@ -5,9 +5,8 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Flag, Send, XCircle } from 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { type MockOption, type MockTest, scoreMockAttempt } from "@/lib/mock-tests";
-
-const storageKey = "orbitprep_mock_attempts";
+import { type MockOption, type MockTest } from "@/lib/mock-tests";
+import { saveTestAttemptAction } from "@/app/test-series/actions";
 
 function formatTime(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60)
@@ -15,11 +14,6 @@ function formatTime(totalSeconds: number) {
     .padStart(2, "0");
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
   return `${minutes}:${seconds}`;
-}
-
-function saveAttempt(attempt: ReturnType<typeof scoreMockAttempt>) {
-  const existing = JSON.parse(window.localStorage.getItem(storageKey) || "[]") as unknown[];
-  window.localStorage.setItem(storageKey, JSON.stringify([attempt, ...existing].slice(0, 25)));
 }
 
 export function MockTestRunner({ test }: { test: MockTest }) {
@@ -37,12 +31,17 @@ export function MockTestRunner({ test }: { test: MockTest }) {
   );
   const progress = Math.round((answeredCount / test.questions.length) * 100);
 
-  const submitAttempt = () => {
+  const submitAttempt = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    const attempt = scoreMockAttempt(test, answers, totalSeconds - secondsLeft);
-    saveAttempt(attempt);
-    router.push(`/test-series/results/${attempt.id}`);
+    try {
+      const attemptId = await saveTestAttemptAction(test, answers, totalSeconds - secondsLeft);
+      router.push(`/test-series/results/${attemptId}`);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save test attempt. Please check your connection.");
+      setIsSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -71,14 +70,14 @@ export function MockTestRunner({ test }: { test: MockTest }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <section className="min-w-0">
-        <div className="sticky top-20 z-30 mb-5 rounded-lg border border-white/10 bg-[#0b1020]/90 p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl">
+        <div className="sticky top-20 z-30 mb-5 rounded-lg border border-white/10 bg-[#0b0b0d]/90 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg border border-rose-300/20 bg-rose-300/10 text-rose-100">
                 <Clock className="size-5" />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-white/40">Time left</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/40">Time left</p>
                 <p className="text-2xl font-semibold text-white">{formatTime(secondsLeft)}</p>
               </div>
             </div>
@@ -89,7 +88,7 @@ export function MockTestRunner({ test }: { test: MockTest }) {
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-white/10">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-emerald-300 to-amber-300"
+                  className="h-full rounded-full bg-white"
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.35 }}
                 />
@@ -97,12 +96,14 @@ export function MockTestRunner({ test }: { test: MockTest }) {
             </div>
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={submitAttempt}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-100"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
             >
               <Send className="size-4" />
-              Submit
+              {isSubmitting ? "Submitting..." : "Submit"}
             </button>
+
           </div>
         </div>
 
@@ -113,10 +114,10 @@ export function MockTestRunner({ test }: { test: MockTest }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -14 }}
             transition={{ duration: 0.25 }}
-            className="rounded-lg border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8"
+            className="rounded-lg border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:p-8"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+              <span className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-xs font-semibold text-white/80">
                 Question {currentIndex + 1} of {test.questions.length}
               </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/55">
@@ -146,13 +147,13 @@ export function MockTestRunner({ test }: { test: MockTest }) {
                     }
                     className={`flex min-h-16 items-start gap-4 rounded-lg border p-4 text-left transition ${
                       selected
-                        ? "border-cyan-300/60 bg-cyan-300/12 text-white shadow-lg shadow-cyan-950/40"
-                        : "border-white/10 bg-slate-950/50 text-white/75 hover:border-white/25 hover:bg-white/[0.06]"
+                ? "border-white/45 bg-white/[0.12] text-white shadow-lg shadow-black/25"
+                        : "border-white/10 bg-black/35 text-white/75 hover:border-white/25 hover:bg-white/[0.06]"
                     }`}
                   >
                     <span
                       className={`flex size-8 shrink-0 items-center justify-center rounded-md border text-sm font-semibold ${
-                        selected ? "border-cyan-200 bg-cyan-200 text-slate-950" : "border-white/15 bg-white/5 text-white"
+                        selected ? "border-white bg-white text-black" : "border-white/15 bg-white/5 text-white"
                       }`}
                     >
                       {option.label}
@@ -186,7 +187,7 @@ export function MockTestRunner({ test }: { test: MockTest }) {
                   type="button"
                   disabled={currentIndex === test.questions.length - 1}
                   onClick={() => setCurrentIndex((value) => Math.min(test.questions.length - 1, value + 1))}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Next
                   <ArrowRight className="size-4" />
@@ -197,7 +198,7 @@ export function MockTestRunner({ test }: { test: MockTest }) {
         </AnimatePresence>
       </section>
 
-      <aside className="rounded-lg border border-white/10 bg-white/[0.04] p-5 lg:sticky lg:top-24 lg:h-fit">
+      <aside className="rounded-lg border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.3)] lg:sticky lg:top-24 lg:h-fit">
         <div className="flex items-center gap-2 text-sm font-semibold text-white">
           <Flag className="size-4 text-amber-200" />
           Question palette
@@ -213,7 +214,7 @@ export function MockTestRunner({ test }: { test: MockTest }) {
                 onClick={() => setCurrentIndex(index)}
                 className={`flex aspect-square items-center justify-center rounded-lg border text-sm font-semibold transition ${
                   active
-                    ? "border-white bg-white text-slate-950"
+                    ? "border-white bg-white text-black"
                     : answered
                       ? "border-emerald-300/40 bg-emerald-300/15 text-emerald-100"
                       : "border-white/10 bg-slate-950/60 text-white/55 hover:border-white/25"
@@ -234,7 +235,7 @@ export function MockTestRunner({ test }: { test: MockTest }) {
             <span className="font-semibold text-white">{test.questions.length - answeredCount}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span>Negative marking</span>
+                <span>Negative marking</span>
             <span className="font-semibold text-white">-{test.negativeMarks}</span>
           </div>
         </div>

@@ -15,19 +15,28 @@ type PageProps = { params: Promise<{ slug: string }> };
 
 export default async function ExamDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const catalogExam = getExam(slug);
-  if (!catalogExam) notFound();
   const data = await getExamPageData(slug);
+  const catalogExam = getExam(slug);
+  const pageExam = catalogExam || (data.exam
+    ? {
+        name: data.exam.name,
+        slug: data.exam.slug,
+        overview: data.exam.description || "Exam preparation resources, questions, PDFs, mock tests, and current affairs will appear here.",
+        focus: ["Database-backed syllabus", "Approved question sets", "Published PDFs", "Mock test practice"],
+      }
+    : null);
+
+  if (!pageExam) notFound();
 
   return (
     <>
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-6 py-20">
         <Link href="/exams" className="text-sm text-cyan-200">Back to exams</Link>
-        <h1 className="mt-5 text-5xl font-semibold">{catalogExam.name}</h1>
-        <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">{data.exam?.description || catalogExam.overview}</p>
+        <h1 className="mt-5 text-5xl font-semibold">{pageExam.name}</h1>
+        <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">{data.exam?.description || pageExam.overview}</p>
         <section className="mt-8 grid gap-4 md:grid-cols-4">
-          {catalogExam.focus.map((item) => <div key={item} className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-slate-200">{item}</div>)}
+          {pageExam.focus.map((item) => <div key={item} className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-slate-200">{item}</div>)}
         </section>
         <section className="mt-10 grid gap-6 lg:grid-cols-2">
           <div className="rounded-lg border border-white/10 bg-white/5 p-6"><h2 className="text-2xl font-semibold">Subjects</h2><div className="mt-5 grid gap-3 sm:grid-cols-2">{data.subjects.map((subject: { id: string; name: string }) => <div key={subject.id} className="rounded-md border border-white/10 bg-slate-950/60 p-4">{subject.name}</div>)}{data.subjects.length === 0 ? <p className="text-sm text-slate-400">Subjects appear after admin publishes this exam syllabus.</p> : null}</div></div>
